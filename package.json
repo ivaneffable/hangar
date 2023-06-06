@@ -5,7 +5,7 @@
     "build": "remix build",
     "dev": "remix dev",
     "typecheck": "tsc",
-    "vercel-build": "prisma generate && remix build",
+    "postinstall": "prisma generate",
     "prisma:generate": "prisma generate"
   },
   "dependencies": {
