@@ -5,6 +5,8 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
+  isRouteErrorResponse,
+  useRouteError,
   useCatch,
 } from "@remix-run/react";
 import type { V2_MetaFunction } from "@remix-run/node";
@@ -53,31 +55,27 @@ export default function App() {
   );
 }
 
-// How ChakraProvider should be used on CatchBoundary
-export function CatchBoundary() {
-  const caught = useCatch();
-
-  return (
-    <Document title={`${caught.status} ${caught.statusText}`}>
-      <ChakraProvider>
-        <Box>
-          <Heading as="h1" bg="purple.600">
-            [CatchBoundary]: {caught.status} {caught.statusText}
-          </Heading>
-        </Box>
-      </ChakraProvider>
-    </Document>
-  );
-}
-
 // How ChakraProvider should be used on ErrorBoundary
 export function ErrorBoundary({ error }: { error: Error }) {
+  console.error(error);
+  if (isRouteErrorResponse(error)) {
+    return (
+      <Document title={`${error.status} ${error.statusText}`}>
+        <div>
+          <h1>
+            {error.status} {error.statusText}
+          </h1>
+        </div>
+      </Document>
+    );
+  }
+
   return (
     <Document title="Error!">
       <ChakraProvider>
         <Box>
           <Heading as="h1" bg="blue.500">
-            [ErrorBoundary]: There was an error: {error.message}
+            [ErrorBoundary]: There was an error {error?.message}
           </Heading>
         </Box>
       </ChakraProvider>

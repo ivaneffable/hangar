@@ -1,7 +1,17 @@
+import { Form, useLoaderData } from "@remix-run/react";
+import type { LoaderArgs } from "@remix-run/node";
+import { json } from "@remix-run/node";
 import { Button, Flex, Text } from "@chakra-ui/react";
-import { ArrowForwardIcon } from "@chakra-ui/icons";
 
-function Header() {
+import { requireUser } from "~/session.server";
+
+export async function loader({ request }: LoaderArgs) {
+  const user = await requireUser(request);
+
+  return json({ user });
+}
+
+function Header({ username }: { username: string }) {
   return (
     <Flex
       as="header"
@@ -13,24 +23,24 @@ function Header() {
       <Text fontSize="3xl" fontWeight="bold">
         Hangar
       </Text>
-      <form action="/logout" method="post">
-        <Button
-          type="submit"
-          rightIcon={<ArrowForwardIcon />}
-          colorScheme="red"
-          variant="outline"
-        >
-          Log out
-        </Button>
-      </form>
+      <Flex alignItems="center" columnGap={2}>
+        <Text fontSize="xl">{username}</Text>
+        <Form action="/logout" method="post">
+          <Button type="submit" colorScheme="red" variant="solid">
+            Log out
+          </Button>
+        </Form>
+      </Flex>
     </Flex>
   );
 }
 
 export default function Me() {
+  const { user } = useLoaderData<typeof loader>();
+
   return (
-    <div>
-      <Header />
-    </div>
+    <>
+      <Header username={user.username} />
+    </>
   );
 }

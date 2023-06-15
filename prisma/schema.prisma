@@ -16,6 +16,7 @@ model User {
   updatedAt    DateTime @updatedAt
   username     String
   googleId     String   @unique
+  email        String   @unique
   picture      String
   bookmark     Bookmark[]
 

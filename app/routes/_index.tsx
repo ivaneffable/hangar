@@ -29,15 +29,16 @@ export async function action({ request }: ActionArgs) {
     });
   }
 
-  const { name, sub, picture } = jwt_decode(credential) as {
+  const { name, email, sub, picture } = jwt_decode(credential) as {
     name: string;
+    email: string;
     sub: string;
     picture: string;
   };
 
   let user = await getUserByGoogleId(sub);
   if (!user) {
-    user = await createUser(name, sub, picture);
+    user = await createUser(name, email, sub, picture);
   }
 
   return createUserSession({
@@ -112,8 +113,6 @@ export default function Index() {
       handleLoginError();
       return;
     }
-
-    localStorage.setItem("user", JSON.stringify(response.credential));
 
     fetcher.submit(
       {
