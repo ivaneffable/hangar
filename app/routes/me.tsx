@@ -4,9 +4,15 @@ import { json } from "@remix-run/node";
 import { Button, Flex, Text } from "@chakra-ui/react";
 
 import { requireUser } from "~/session.server";
+import linkPreviewGenerator from "link-preview-generator";
 
 export async function loader({ request }: LoaderArgs) {
   const user = await requireUser(request);
+
+  const previewData = await linkPreviewGenerator(
+    "https://www.youtube.com/watch?v=8mqqY2Ji7_g"
+  );
+  console.log(previewData);
 
   return json({ user });
 }
