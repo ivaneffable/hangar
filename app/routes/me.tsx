@@ -4,15 +4,20 @@ import { json } from "@remix-run/node";
 import { Button, Flex, Text } from "@chakra-ui/react";
 
 import { requireUser } from "~/session.server";
-import linkPreviewGenerator from "link-preview-generator";
+import playwright from "playwright";
 
 export async function loader({ request }: LoaderArgs) {
   const user = await requireUser(request);
 
-  const previewData = await linkPreviewGenerator(
-    "https://www.youtube.com/watch?v=8mqqY2Ji7_g"
-  );
-  console.log(previewData);
+  const browser = await playwright.chromium.launch({
+    headless: true, // setting this to true will not run the UI
+  });
+  const page = await browser.newPage();
+  await page.goto("https://finance.yahoo.com/world-indices");
+  const dom = await page.content();
+  console.log(dom);
+
+  await browser.close();
 
   return json({ user });
 }
