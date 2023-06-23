@@ -3,21 +3,26 @@ import type { LoaderArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { Button, Flex, Text } from "@chakra-ui/react";
 
+import metascraper from "metascraper";
+import metascraperTitle from "metascraper-title";
+import metascraperImage from "metascraper-image";
+import metascraperDescription from "metascraper-description";
+
 import { requireUser } from "~/session.server";
-import playwright from "playwright";
 
 export async function loader({ request }: LoaderArgs) {
   const user = await requireUser(request);
 
-  const browser = await playwright.chromium.launch({
-    headless: true, // setting this to true will not run the UI
-  });
-  const page = await browser.newPage();
-  await page.goto("https://finance.yahoo.com/world-indices");
-  const dom = await page.content();
-  console.log(dom);
-
-  await browser.close();
+  const siteUrl = "https://www.youtube.com/watch?v=t-nchkL9yIg";
+  const response = await fetch(siteUrl);
+  const html = await response.text();
+  const url = response.url;
+  const metadata = await metascraper([
+    metascraperTitle(),
+    metascraperImage(),
+    metascraperDescription(),
+  ])({ html, url });
+  console.log(metadata);
 
   return json({ user });
 }
