@@ -8,6 +8,16 @@ export async function createBookmark(
     "id" | "createdAt" | "updatedAt" | "timesOpened" | "timesLiked"
   >
 ) {
+  const bookmarkExists =
+    (
+      await prisma.bookmark.findMany({
+        where: { userId: bookmark.userId, url: bookmark.url },
+      })
+    ).length > 0;
+  if (bookmarkExists) {
+    throw new Error("Bookmark already exists");
+  }
+
   return prisma.bookmark.create({ data: bookmark });
 }
 

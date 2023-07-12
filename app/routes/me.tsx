@@ -102,19 +102,20 @@ export async function action({ request }: ActionArgs) {
         { status: 200 }
       );
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        if (error.code === "P2002") {
-          return json(
-            {
-              errors: {
-                title: "Link already included in your Hangar",
-                description: null,
-              },
-              bookmark: null,
+      if (
+        error instanceof Error &&
+        error.message === "Bookmark already exists"
+      ) {
+        return json(
+          {
+            errors: {
+              title: "Link already included in your Hangar",
+              description: null,
             },
-            { status: 400 }
-          );
-        }
+            bookmark: null,
+          },
+          { status: 400 }
+        );
       }
       return json(
         {
