@@ -1,8 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import {
   Form,
+  Outlet,
   useActionData,
   useLoaderData,
+  useNavigate,
   useNavigation,
 } from "@remix-run/react";
 import type { ActionArgs, LoaderArgs } from "@remix-run/node";
@@ -18,27 +20,15 @@ import {
   Image,
   Stack,
   Link,
-  Modal,
-  ModalOverlay,
-  ModalContent,
   Spacer,
-  Tag,
-  TagLabel,
   Text,
   useToast,
 } from "@chakra-ui/react";
-import { SmallCloseIcon, EditIcon } from "@chakra-ui/icons";
-import type { Bookmark } from "@prisma/client";
+import { EditIcon } from "@chakra-ui/icons";
 import { Prisma } from "@prisma/client";
 
 import { scrapeMetadata } from "~/utils/metascraper.server";
-import {
-  addTagToBookmark,
-  deleteTagToBookmark,
-  createBookmark,
-  deleteBookmark,
-  getUserBookmarks,
-} from "~/models/bookmark.server";
+import { createBookmark, getUserBookmarks } from "~/models/bookmark.server";
 import { requireUser } from "~/session.server";
 
 export async function loader({ request }: LoaderArgs) {
@@ -67,7 +57,7 @@ export async function action({ request }: ActionArgs) {
   const formData = await request.formData();
   const { _action } = Object.fromEntries(formData);
 
-  if (_action === "add-link") {
+  if (_action === "add-bookmark") {
     const link = formData.get("link");
 
     if (typeof link !== "string" || link.length === 0) {
@@ -102,7 +92,6 @@ export async function action({ request }: ActionArgs) {
         tags: [] as string[],
         ...metadata,
       });
-      console.log(response);
       return json(
         {
           bookmark: {
@@ -113,7 +102,6 @@ export async function action({ request }: ActionArgs) {
         { status: 200 }
       );
     } catch (error) {
-      console.error(error);
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === "P2002") {
           return json(
@@ -141,70 +129,6 @@ export async function action({ request }: ActionArgs) {
     }
   }
 
-  if (_action === "add-tag") {
-    const bookmarkId = formData.get("bookmarkId");
-    const tag = formData.get("tag");
-
-    if (
-      typeof bookmarkId !== "string" ||
-      bookmarkId.length === 0 ||
-      typeof tag !== "string" ||
-      tag.length === 0
-    ) {
-      return json(
-        {
-          errors: { title: "Bookmark id is required.", description: null },
-          bookmark: null,
-        },
-        { status: 400 }
-      );
-    }
-
-    if (tag) {
-      await addTagToBookmark(bookmarkId, tag);
-    }
-  }
-
-  if (_action === "delete-tag") {
-    const bookmarkId = formData.get("bookmarkId");
-    const tag = formData.get("tag");
-
-    if (
-      typeof bookmarkId !== "string" ||
-      bookmarkId.length === 0 ||
-      typeof tag !== "string" ||
-      tag.length === 0
-    ) {
-      return json(
-        {
-          errors: { title: "Bookmark id is required.", description: null },
-          bookmark: null,
-        },
-        { status: 400 }
-      );
-    }
-
-    if (tag) {
-      await deleteTagToBookmark(bookmarkId, tag);
-    }
-  }
-
-  if (_action === "delete-bookmark") {
-    const bookmarkId = formData.get("bookmarkId");
-
-    if (typeof bookmarkId !== "string" || bookmarkId.length === 0) {
-      return json(
-        {
-          errors: { title: "Bookmark id is required.", description: null },
-          bookmark: null,
-        },
-        { status: 400 }
-      );
-    }
-
-    await deleteBookmark(bookmarkId);
-  }
-
   return redirect("/me");
 }
 
@@ -229,9 +153,8 @@ function Header({ username }: { username: string }) {
 export default function Me() {
   const toast = useToast();
   const navigation = useNavigation();
-  const [openedBookmark, setOpenedBookmark] = useState<Bookmark["id"] | null>(
-    null
-  );
+  const navigate = useNavigate();
+
   const actionData = useActionData<typeof action>();
   const { user, bookmarks } = useLoaderData<typeof loader>();
 
@@ -239,29 +162,16 @@ export default function Me() {
   const linkInput = useRef<HTMLInputElement>(null);
   const isAddingLink =
     navigation.state === "submitting" &&
-    navigation.formData.get("_action") === "add-link";
-
-  const addTabForm = useRef<HTMLFormElement>(null);
-  const tabInput = useRef<HTMLInputElement>(null);
-  const isAddingTab =
-    navigation.state === "submitting" &&
-    navigation.formData.get("_action") === "add-tag";
+    navigation.formData.get("_action") === "add-bookmark";
 
   useEffect(() => {
     if (!isAddingLink) {
       addLinkForm.current?.reset();
       if (actionData?.bookmark?.id) {
-        setOpenedBookmark(actionData?.bookmark?.id);
+        navigate(`/me/${actionData?.bookmark?.id}`);
       }
     }
-  }, [isAddingLink, actionData?.bookmark?.id]);
-
-  useEffect(() => {
-    if (!isAddingTab) {
-      addTabForm.current?.reset();
-      tabInput.current?.focus();
-    }
-  }, [isAddingTab]);
+  }, [isAddingLink, actionData?.bookmark?.id, navigate]);
 
   useEffect(() => {
     if (actionData?.errors?.title) {
@@ -273,11 +183,7 @@ export default function Me() {
         isClosable: true,
       });
     }
-  }, [actionData]);
-
-  const bookmarkInEdition = bookmarks.find(
-    (bookmark) => bookmark.id === openedBookmark
-  );
+  }, [actionData, toast]);
 
   return (
     <Box padding={4}>
@@ -297,7 +203,7 @@ export default function Me() {
             colorScheme="green"
             variant="solid"
             name="_action"
-            value="add-link"
+            value="add-bookmark"
           >
             Add Link
           </Button>
@@ -332,7 +238,7 @@ export default function Me() {
                 <Flex justifyContent="flex-end">
                   <Box
                     as="button"
-                    onClick={() => setOpenedBookmark(bookmark.id)}
+                    onClick={() => navigate(`/me/${bookmark.id}`)}
                   >
                     <EditIcon />
                   </Box>
@@ -342,101 +248,7 @@ export default function Me() {
           </Card>
         ))}
       </Flex>
-
-      <Modal
-        size="xs"
-        isOpen={Boolean(openedBookmark)}
-        onClose={() => setOpenedBookmark(null)}
-        closeOnEsc={false}
-      >
-        <ModalOverlay />
-        <ModalContent>
-          {bookmarkInEdition && (
-            <Box p={4}>
-              <Image
-                src={bookmarkInEdition.image}
-                alt="Website image"
-                borderRadius="lg"
-              />
-              <Stack mt="6" spacing="3">
-                <Heading size="md">{bookmarkInEdition.title}</Heading>
-                <Text>{bookmarkInEdition.description}</Text>
-              </Stack>
-
-              <Flex flexDirection="column" mt={4}>
-                <Flex columnGap={2}>
-                  {bookmarkInEdition.tags.map((tag) => (
-                    <Form method="post" key={tag}>
-                      <Input
-                        type="hidden"
-                        name="bookmarkId"
-                        value={bookmarkInEdition.id}
-                      />
-                      <Input type="hidden" name="tag" value={tag} />
-                      <Tag
-                        size="md"
-                        borderRadius="full"
-                        variant="solid"
-                        colorScheme="blue"
-                      >
-                        <TagLabel>{tag}</TagLabel>
-                        <button type="submit" name="_action" value="delete-tag">
-                          <SmallCloseIcon />
-                        </button>
-                      </Tag>
-                    </Form>
-                  ))}
-                </Flex>
-
-                <Form ref={addTabForm} method="post">
-                  <Flex mt={4} columnGap={2}>
-                    <Input
-                      type="hidden"
-                      name="bookmarkId"
-                      value={bookmarkInEdition.id}
-                    />
-                    <Input
-                      ref={tabInput}
-                      placeholder="Add a tag"
-                      name="tag"
-                      autoComplete="off"
-                    />
-                    <Button
-                      type="submit"
-                      colorScheme="green"
-                      variant="solid"
-                      name="_action"
-                      value="add-tag"
-                    >
-                      Add Tag
-                    </Button>
-                  </Flex>
-                </Form>
-
-                <Form method="post">
-                  <Flex mt={12} columnGap={2} justifyContent="center">
-                    <Input
-                      type="hidden"
-                      name="bookmarkId"
-                      value={bookmarkInEdition.id}
-                    />
-                    <Button
-                      type="submit"
-                      colorScheme="red"
-                      variant="solid"
-                      name="_action"
-                      value="delete-bookmark"
-                      onClick={() => setOpenedBookmark(null)}
-                    >
-                      Delete Bookmark
-                    </Button>
-                  </Flex>
-                </Form>
-              </Flex>
-            </Box>
-          )}
-        </ModalContent>
-      </Modal>
+      <Outlet context={bookmarks} />
     </Box>
   );
 }

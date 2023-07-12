@@ -6,8 +6,6 @@ import {
   Scripts,
   ScrollRestoration,
   isRouteErrorResponse,
-  useRouteError,
-  useCatch,
 } from "@remix-run/react";
 import type { V2_MetaFunction } from "@remix-run/node";
 import { ChakraProvider, Box, Heading } from "@chakra-ui/react";
