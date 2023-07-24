@@ -32,16 +32,6 @@ export async function getUserId(
   return userId;
 }
 
-export async function getUser(request: Request) {
-  const userId = await getUserId(request);
-  if (userId === undefined) return null;
-
-  const user = await getUserById(userId);
-  if (user) return user;
-
-  throw await logout(request);
-}
-
 export async function requireUserId(request: Request) {
   const userId = await getUserId(request);
   if (!userId) {
