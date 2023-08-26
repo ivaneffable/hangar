@@ -77,7 +77,7 @@ export default function Neighborhood() {
   }, [actionData, toast]);
 
   return (
-    <Flex wrap="wrap" gap="5" justifyContent="space-between">
+    <Flex wrap="wrap" gap="2" justifyContent="start">
       {bookmarks.map((bookmark) => (
         <Bookmark
           key={bookmark.id}
